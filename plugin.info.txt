@@ -1,0 +1,7 @@
+base   pele
+author pele-dokuwiki contributors
+email  contact@example.com
+date   2026-10-18
+name   Pele Diagrams
+desc   Renders Mermaid diagrams to themeable SVG using the Pele renderer. Use a &lt;pele&gt; block in your pages.
+url    https://github.com/obsidianmd/pele

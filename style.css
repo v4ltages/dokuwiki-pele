@@ -1,0 +1,35 @@
+/* Pele diagrams: container and fallback handling */
+
+.dokuwiki .pele-diagram {
+    margin: 0.5em 0;
+}
+
+/* keep the rendered SVG inside the page width */
+.dokuwiki .pele-diagram svg {
+    max-width: 100%;
+    height: auto;
+}
+
+/* the raw source is the no-JavaScript fallback; hide it once rendered */
+.dokuwiki .pele-diagram.pele-done .pele-source {
+    display: none;
+}
+
+.dokuwiki .pele-diagram pre.pele-source {
+    background-color: __background_alt__;
+    border: 1px solid __border__;
+    padding: 0.4em 0.6em;
+    overflow-x: auto;
+}
+
+/* Pele reports errors with the offending diagram source quoted */
+.dokuwiki .pele-diagram .pele-error {
+    color: __missing__;
+    background-color: __background_alt__;
+    border: 1px solid __missing__;
+    border-radius: 2px;
+    padding: 0.4em 0.6em;
+    white-space: pre-wrap;
+    font-family: monospace;
+    font-size: 90%;
+}

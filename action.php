@@ -26,8 +26,11 @@ class action_plugin_pele extends DokuWiki_Action_Plugin
     {
         global $ACT;
 
-        // only add the library where diagrams can appear
-        if ($ACT !== null && $ACT !== 'show' && $ACT !== 'preview' && $ACT !== 'draft') {
+        // inject wherever diagrams can appear; the edit actions matter
+        // because DokuWiki's edit preview is AJAX-inserted into a page
+        // that was already loaded with the library
+        $acts = array('show', 'edit', 'preview', 'draft', 'recover', 'conflict', 'locked');
+        if ($ACT !== null && !in_array($ACT, $acts, true)) {
             return;
         }
         if (!$this->getConf('loadlib')) {

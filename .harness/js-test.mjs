@@ -35,46 +35,49 @@ function makeBox(text) {
     return box;
 }
 
-// ---- load script.js with stubs ----
+// ---- stubs ----
 const boxes = new FakeNodeList();
 global.document = {
+    body: { stub: true },
     createElement(tag) {
-        return { className: '', textContent: '', parentNode: null };
+        const el = { className: '', textContent: '', parentNode: null };
+        el.appendChild = (n) => { n.parentNode = el; };
+        return el;
     },
     querySelectorAll(sel) {
         return sel === '.pele-diagram' ? boxes : new FakeNodeList();
     },
 };
 
-// record appendChild/removeChild on created elements
-const origCreate = global.document.createElement;
-global.document.createElement = function (tag) {
-    const el = origCreate(tag);
-    el.appendChild = (n) => { el.child = n; n.parentNode = el; };
-    el.parentNode = null;
-    return el;
-};
-
-let jqueryReadyFn = null;
-global.jQuery = function (fn) { jqueryReadyFn = fn; };
+const jqueryReadyFns = [];
+global.jQuery = function (fn) { jqueryReadyFns.push(fn); };
 global.window = global;
+
+// MutationObserver stub: record callbacks so tests can simulate mutations
+const observerCallbacks = [];
+global.MutationObserver = class {
+    constructor(cb) { observerCallbacks.push(cb); }
+    observe() {}
+};
 
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const code = fs.readFileSync(path.join(__dirname, '..', 'script.js'), 'utf8');
-// script.js defines functions at top level and registers with jQuery()
 eval(code);
 
+function runReady() { for (const fn of [...jqueryReadyFns]) fn(); }
+function fireMutation() { for (const cb of [...observerCallbacks]) cb(); }
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
 const results = [];
-function check(label, pass, extra) {
-    results.push(`${pass ? 'PASS' : 'FAIL'} - ${label}${extra ? ' (' + extra + ')' : ''}`);
+function check(label, pass) {
+    results.push(`${pass ? 'PASS' : 'FAIL'} - ${label}`);
     if (!pass) process.exitCode = 1;
 }
 
-// scenario 1: successful mount
-let failures = 0;
+// scenario 1: successful mount on ready
 const okBox = makeBox('flowchart TD\n A --> B');
 boxes.push(okBox);
 global.pele = {
@@ -83,16 +86,17 @@ global.pele = {
         target.mountedText = text;
     },
 };
-jqueryReadyFn();
+runReady();
 check('success: pele-done class added', okBox.classList.contains('pele-done'));
 check('success: target appended', okBox.appended.length === 1 && okBox.appended[0].mountedText.indexOf('flowchart') === 0);
+check('observer registered for AJAX content', observerCallbacks.length === 1);
 
 // scenario 2: mount throws -> error element, source hidden by pele-done
 const errBox = makeBox('%% unparsable %%');
 boxes.push(errBox);
-jqueryReadyFn(); // re-run; okBox already done, should be skipped
+runReady();
 check('error: pele-done added', errBox.classList.contains('pele-done'));
-check('error: target removed', errBox.appended.every((n) => !n.className || n.className !== 'pele-target'));
+check('error: target removed', errBox.appended.every((n) => n.className !== 'pele-target'));
 check('error: error box shown', errBox.appended.some((n) => n.className === 'pele-error' && n.textContent.indexOf('bad') >= 0));
 check('idempotent: okBox has one target', okBox.appended.filter((n) => n.className === 'pele-target').length === 1);
 
@@ -100,10 +104,38 @@ check('idempotent: okBox has one target', okBox.appended.filter((n) => n.classNa
 const lateBox = makeBox('flowchart LR\n X --> Y');
 boxes.push(lateBox);
 delete global.pele;
-jqueryReadyFn();
+runReady();
 check('missing lib: not marked done yet', !lateBox.classList.contains('pele-done'));
 global.pele = { mount(t) { t.mounted = true; } };
-await new Promise((r) => setTimeout(r, 80));
+await wait(80);
 check('missing lib: rendered after lib appears', lateBox.classList.contains('pele-done'));
+
+// scenario 4: AJAX preview — diagram inserted after page load is picked
+// up by the MutationObserver path
+const previewBox = makeBox('sequenceDiagram\n  A->>B: hello');
+boxes.push(previewBox);
+fireMutation();
+await wait(150);
+check('ajax preview: rendered after mutation', previewBox.classList.contains('pele-done'));
+check('ajax preview: target mounted',
+    previewBox.appended.some((n) => n.className === 'pele-target' && n.mounted === true));
+
+// scenario 5: repeated mutation callbacks stay idempotent
+const targetsBefore = previewBox.appended.filter((n) => n.className === 'pele-target').length;
+fireMutation();
+await wait(150);
+const targetsAfter = previewBox.appended.filter((n) => n.className === 'pele-target').length;
+check('ajax preview: no duplicate targets on re-mutation', targetsBefore === targetsAfter);
+
+// scenario 6: diagram inserted while the library is still unavailable
+const earlyBox = makeBox('flowchart BT\n P --> Q');
+boxes.push(earlyBox);
+delete global.pele;
+fireMutation();
+await wait(150);
+check('ajax preview without lib: no premature done', !earlyBox.classList.contains('pele-done'));
+global.pele = { mount(t) { t.mounted = true; } };
+await wait(150);
+check('ajax preview without lib: rendered once lib appears', earlyBox.classList.contains('pele-done'));
 
 console.log(results.join('\n'));

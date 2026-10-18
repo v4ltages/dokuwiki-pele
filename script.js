@@ -6,9 +6,13 @@
  * library (window.pele). The source block stays visible until the
  * diagram has rendered, so pages without JavaScript still show the
  * diagram code.
+ *
+ * Diagrams that appear later — most importantly DokuWiki's AJAX edit
+ * preview — are picked up by a MutationObserver on the document body.
  */
 
 function peleRenderOne(box) {
+    if (typeof window.pele === 'undefined') return;
     if (box.classList.contains('pele-done')) return;
 
     var source = box.querySelector('pre.pele-source');
@@ -51,6 +55,30 @@ function peleTry(attempt) {
     }
 }
 
+/**
+ * Debounced entry point for mutations: gives the browser time to finish
+ * inserting a batch of nodes, then renders whatever is still pending.
+ * peleRenderOne() skips finished boxes, so repeated calls are cheap and
+ * idempotent.
+ */
+var peleScheduled = false;
+function peleSchedule() {
+    if (peleScheduled) return;
+    peleScheduled = true;
+    setTimeout(function () {
+        peleScheduled = false;
+        peleTry(0);
+    }, 100);
+}
+
 jQuery(function () {
     peleTry(0);
+
+    // AJAX edit preview, plugins inserting pages dynamically, etc.
+    if (typeof MutationObserver !== 'undefined' && document.body) {
+        new MutationObserver(peleSchedule).observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    }
 });

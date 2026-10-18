@@ -101,4 +101,20 @@ $action->handleMetaheader($event, null);
 if (!empty($eventData['script'])) { echo "FAIL - loadlib=0 still injects\n"; $fail = 1; }
 else { echo "PASS - loadlib=0 injects nothing\n"; }
 
+// action component: ACT whitelist (edit actions must get the library,
+// because the AJAX preview is rendered into an already-loaded page)
+$action->setConf('loadlib', 1);
+global $ACT;
+foreach (array('edit' => true, 'preview' => true, 'conflict' => true,
+               'admin' => false, 'search' => false, 'index' => false) as $actName => $expect) {
+    $ACT = $actName;
+    $eventData = array('script' => array());
+    $event = new Doku_Event('TPL_METAHEADER_OUTPUT', $eventData);
+    $action->handleMetaheader($event, null);
+    $injected = !empty($eventData['script']);
+    if ($injected === $expect) { echo "PASS - ACT '$actName' injection: " . var_export($injected, true) . "\n"; }
+    else { echo "FAIL - ACT '$actName' injection should be " . var_export($expect, true) . "\n"; $fail = 1; }
+}
+$ACT = 'show';
+
 exit($fail);

@@ -35,7 +35,10 @@ sequenceDiagram
 </pele>
 ```
 
-Diagrams render client-side in the browser. Without JavaScript the raw
+Diagrams render client-side in the browser. The edit preview works too:
+DokuWiki's preview button renders via AJAX, and the plugin picks up
+diagrams that are inserted into the page after load, so you see rendered
+diagrams while editing before saving. Without JavaScript the raw
 Mermaid source is shown instead of a blank box, and Pele's error messages
 (including the offending source) are displayed as text when a diagram
 fails to parse.
@@ -95,8 +98,8 @@ for handling untrusted diagrams.
 ```
 plugin.info.txt          plugin metadata
 syntax.php               <pele> block → diagram container
-action.php               injects the Pele library script tag
-script.js                renders each container with pele.mount()
+action.php               injects the Pele library script tag (incl. edit/preview actions)
+script.js                renders each container with pele.mount(), incl. AJAX preview
 style.css                container, fallback and error styling
 conf/                    configuration defaults and metadata
 lang/en/settings.php     English config labels

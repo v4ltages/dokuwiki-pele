@@ -7,9 +7,16 @@
  * diagram has rendered, so pages without JavaScript still show the
  * diagram code.
  *
- * Diagrams that appear later — most importantly DokuWiki's AJAX edit
- * preview — are picked up by a MutationObserver on the document body.
+ * Diagrams that appear later are picked up by a MutationObserver on
+ * the document body — e.g. plugins that fetch page content via AJAX.
+ * If the library itself never arrives, a visible error says so instead
+ * of silently leaving only the raw source.
  */
+
+var PELE_TRIES = window.peleTries || 40; // 40 x 50 ms = 2 s per render pass
+var PELE_DELAY = window.peleDelay || 50;
+var PELE_MISSING = 'Pele library failed to load (window.pele is undefined); ' +
+    'showing the diagram source instead.';
 
 function peleRenderOne(box) {
     if (typeof window.pele === 'undefined') return;
@@ -19,6 +26,11 @@ function peleRenderOne(box) {
     if (!source) return;
 
     var text = source.textContent;
+
+    // the library arrived late: drop an earlier "failed to load" notice
+    var stale = box.querySelector('.pele-error');
+    if (stale && stale.parentNode) stale.parentNode.removeChild(stale);
+
     var target = document.createElement('div');
     target.className = 'pele-target';
 
@@ -46,12 +58,32 @@ function peleRenderAll() {
     }
 }
 
+/**
+ * The library is still missing after the retry budget ran out: say so
+ * on every unfinished diagram so the failure is visible, not silent.
+ */
+function peleFlagMissing() {
+    var boxes = document.querySelectorAll('.pele-diagram');
+    for (var i = 0; i < boxes.length; i++) {
+        var box = boxes[i];
+        if (box.classList.contains('pele-done')) continue;
+        if (box.querySelector('.pele-error')) continue;
+
+        var note = document.createElement('div');
+        note.className = 'pele-error';
+        note.textContent = PELE_MISSING;
+        box.appendChild(note);
+    }
+}
+
 function peleTry(attempt) {
     if (typeof window.pele !== 'undefined') {
         peleRenderAll();
-    } else if (attempt < 40) {
+    } else if (attempt < PELE_TRIES) {
         // library not loaded yet; retry for up to ~2s (slow CDN, CSP, ...)
-        setTimeout(function () { peleTry(attempt + 1); }, 50);
+        setTimeout(function () { peleTry(attempt + 1); }, PELE_DELAY);
+    } else {
+        peleFlagMissing();
     }
 }
 
@@ -71,14 +103,25 @@ function peleSchedule() {
     }, 100);
 }
 
-jQuery(function () {
+function peleBoot() {
     peleTry(0);
 
-    // AJAX edit preview, plugins inserting pages dynamically, etc.
+    // plugins inserting pages dynamically, AJAX previews, etc.
     if (typeof MutationObserver !== 'undefined' && document.body) {
         new MutationObserver(peleSchedule).observe(document.body, {
             childList: true,
             subtree: true
         });
     }
-});
+}
+
+// run as soon as the DOM is ready; jQuery is not required
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', peleBoot);
+} else {
+    peleBoot();
+}
+
+// a very slow CDN may deliver the library only around the load event,
+// after the initial retry budget has been spent
+window.addEventListener('load', peleRenderAll);

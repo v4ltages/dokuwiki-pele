@@ -71,8 +71,16 @@ Configuration Manager → "Pele Diagrams":
 ## Theming
 
 Pele is themed entirely with CSS variables, and color changes apply without
-re-rendering. Override them for the wiki (e.g. in
-`conf/userstyle.css` or the template):
+re-rendering.
+
+By default the plugin maps those variables to the active template's palette
+(DokuWiki's `style.ini` placeholders), so diagrams match the template's
+colors automatically. Templates that switch their palette for dark mode
+take the diagrams with them — no per-wiki configuration needed.
+
+To use a custom palette instead, override the variables in
+`conf/userstyle.css` (or the template); user styles load after plugin
+styles, so they win:
 
 ```css
 .dokuwiki .pele-diagram {
@@ -86,7 +94,10 @@ re-rendering. Override them for the wiki (e.g. in
 }
 ```
 
-This also makes dark-mode switching a single variable swap.
+On a template without dark mode, the same variables under a
+`@media (prefers-color-scheme: dark)` block (or a body class of your
+choice) give diagrams a dark palette, and switching applies instantly to
+already-rendered diagrams.
 
 ## Security
 
@@ -104,7 +115,7 @@ plugin.info.txt          plugin metadata
 syntax.php               <pele> block → diagram container
 action.php               injects the Pele library script tag (incl. edit/preview actions)
 script.js                renders each container with pele.mount(), incl. AJAX-inserted content
-style.css                container, fallback and error styling
+style.css                container, template palette mapping, fallback and error styling
 conf/                    configuration defaults and metadata
 lang/en/settings.php     English config labels
 dist/pele.global.js      bundled Pele 1.6.0 (MIT, obsidianmd/pele)

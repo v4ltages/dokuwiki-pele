@@ -1,6 +1,21 @@
 /* Pele diagrams: container and fallback handling */
 
+/* Map Pele's theme variables to the active template's palette (style.ini
+   placeholders), so diagrams follow the template automatically — including
+   templates that swap their palette for dark mode. Pele reads these variables
+   purely through CSS, so a palette switch re-themes rendered diagrams without
+   a re-render. Overrides in conf/userstyle.css load after plugin styles and
+   therefore win. */
 .dokuwiki .pele-diagram {
+    --pele-bg: __background__;
+    --pele-fg: __text__;
+    --pele-muted: __text_neu__;
+    --pele-line: __text__;
+    --pele-surface: __background_alt__;
+    --pele-surface-alt: __background_neu__;
+    --pele-border: __border__;
+    --pele-accent: __link__;
+    --pele-error: __missing__;
     margin: 0.5em 0;
 }
 

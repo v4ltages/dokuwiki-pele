@@ -4,7 +4,7 @@ A DokuWiki plugin that renders **Mermaid** diagrams using
 [Pele](https://pele.run/) — the lightweight, themeable Mermaid renderer
 ([obsidianmd/pele](https://github.com/obsidianmd/pele), MIT).
 
-Pele is small (~230 kB gzipped), synchronous, has no runtime dependencies,
+Pele is small (~250 kB gzipped), synchronous, has no runtime dependencies,
 supports every diagram type built into Mermaid 12.1.0, and adapts its layout
 to the container width. The library is bundled, so no external CDN request
 is needed and it works under DokuWiki's default Content-Security-Policy.
@@ -35,27 +35,29 @@ sequenceDiagram
 </pele>
 ```
 
-Diagrams render client-side in the browser. The edit preview works too:
-DokuWiki's preview is a full page load that includes the library and
-the renderer, and diagrams inserted after page load (e.g. by plugins
-that fetch page content via AJAX) are picked up automatically. If the
-Pele library itself fails to load, a visible error says so instead of
-silently showing the source. Without JavaScript the raw Mermaid source
-is shown instead of a blank box, and Pele's error messages (including
-the offending source) are displayed as text when a diagram fails to
-parse.
+Diagrams render client-side in the browser. The edit preview works as
+well: DokuWiki's preview is a full page load, so it includes both the
+Pele library and the plugin's renderer. Diagrams that appear after the
+page has loaded — e.g. content fetched by other plugins via AJAX — are
+picked up automatically.
+
+Failures are visible rather than silent. Without JavaScript the raw
+Mermaid source is shown instead of a blank box. If the Pele library
+itself fails to load, a visible error says so instead of silently
+falling back to the source. And when a diagram fails to parse, Pele's
+error message (including the offending source) is displayed as text.
 
 ## Installation
 
 Manual install (git):
 
 ```bash
-git clone https://github.com/YOURUSER/pele-dokuwiki lib/plugins/pele
+git clone https://github.com/v4ltages/dokuwiki-pele lib/plugins/pele
 ```
 
-Then log in as admin and open the Configuration Manager once so the
-plugin's defaults are picked up, or just start editing pages — no further
-setup is required.
+No further setup is required — the bundled defaults work out of the box.
+The Configuration Manager offers the settings below if you want to change
+them.
 
 ## Configuration
 
@@ -106,11 +108,35 @@ style.css                container, fallback and error styling
 conf/                    configuration defaults and metadata
 lang/en/settings.php     English config labels
 dist/pele.global.js      bundled Pele 1.6.0 (MIT, obsidianmd/pele)
-.harness/                standalone PHP/Node test harness (dev only)
+dist/LICENSE             Pele's MIT license (incl. the Lucide ISC notice)
+.harness/                PHP/Node test harness for user/developer testing
 ```
+
+## Testing
+
+The `.harness/` directory contains a standalone test harness that verifies
+the plugin without a DokuWiki installation — useful for developers making
+changes and for users who want to check the plugin before deploying it:
+
+```bash
+php .harness/test.php    # syntax + action component (stubbed DokuWiki API)
+node .harness/js-test.mjs # renderer (fake DOM)
+```
+
+Each prints one PASS/FAIL line per check and exits non-zero on failure.
+`test.php` runs only from the command line: the plugin directory is
+web-accessible on a git-clone install, so the harness refuses to execute
+over HTTP.
 
 ## Licenses
 
-- Plugin code: MIT
+- Plugin code: MIT — see [LICENSE](LICENSE)
 - Bundled `dist/pele.global.js`: Pele 1.6.0, MIT License,
-  Copyright (c) obsidianmd/pele contributors — https://github.com/obsidianmd/pele
+  Copyright (c) kepano — see [dist/LICENSE](dist/LICENSE),
+  https://github.com/obsidianmd/pele
+
+## AI assistance
+
+This plugin's code and documentation were written with the assistance of
+AI coding tools (Mistral Vibe, built by Mistral AI). It is released as-is
+under the MIT license.

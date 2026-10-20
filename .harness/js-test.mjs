@@ -1,6 +1,8 @@
 /**
- * Node harness for script.js using a minimal DOM stub.
- * Not part of the plugin; verification only.
+ * Node harness for user/developer testing: runs script.js against a
+ * minimal DOM stub. Not loaded by DokuWiki; run from the command line:
+ *
+ *   node .harness/js-test.mjs
  */
 
 class FakeNodeList extends Array {}

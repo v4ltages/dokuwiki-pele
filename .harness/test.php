@@ -1,11 +1,17 @@
 <?php
 /**
- * Standalone harness that stubs the minimal DokuWiki API and drives the
- * plugin's syntax and action components the way DokuWiki would.
- * Not part of the plugin; used for verification only.
+ * Standalone harness for user/developer testing: stubs the minimal DokuWiki
+ * API and drives the plugin's syntax and action components the way
+ * DokuWiki would. Not loaded by DokuWiki; run from the command line:
+ *
+ *   php .harness/test.php
  */
 
 error_reporting(E_ALL);
+
+// The plugin directory is web-accessible when installed via git clone;
+// refuse to run over HTTP and only allow command-line execution.
+if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 
 define('DOKU_LF', "\n");
 define('DOKU_BASE', '/');
